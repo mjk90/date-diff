@@ -1,0 +1,8 @@
+{
+  "name": "dates-distance",
+  "version": "1.0.0",
+  "description": "A node CLI app to calculate the distance between two dates",
+  "main": "index.js",
+  "author": "Matt Kelly",
+  "license": "MIT"
+}
