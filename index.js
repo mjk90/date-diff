@@ -1,127 +1,49 @@
-const readline = require("readline");
+const { UserInterface } = require('./userInterface');
+const { DateCalculator } = require("./dateCalculator");
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const helpText = `
+  When using this application, you will be prompted to enter two dates (must be in dd/mm/yyyy format).
+  You can enter these two dates seperated by any combination of space, "-", "to" or "and".
+  For example "01/01/2001 03/01/2001", "2/6/1983 to 22/6/1983" or "4/7/1984-25/12/1984".
+  The earliest date you can select is 1/1/1900 and the latest is 31/12/2999.
+  
+  - Enter "help" to see the help text.
+  - Enter "exit" to quit the application.
+`;
 
-const MIN_YEAR = 1900;
-
-const getDaysInMonth = (month, leapYear) => ({
-  1: 31,
-  2: leapYear ? 29 : 28,
-  3: 31,
-  4: 30,
-  5: 31,
-  6: 30,
-  7: 31,
-  8: 31,
-  9: 30,
-  10: 31,
-  11: 30,
-  12: 31
-}[month]);
-
-const askUser = async (question) => new Promise(resolve => rl.question(`${question}\n`, resolve));
-
-const isLeapYear = (year) => ( (year % 4 == 0) && (year % 100 != 0) ) || (year % 400 == 0);
-
-const tryParseInt = (str) => {
-  const num = (+ str);
-  if(num % 1 === 0) {
-    return num;
-  }
-  throw Error("Dates must contain valid numbers");
-} 
-
-const getValidYear = (yearString) => {
-  const year = parseInt(yearString);
-  if(year >= 1900 && year <= 2999) {
-    return year;
-  }
-  return 0;
-}
-
-const getValidMonth = (monthString) => {
-  const month = parseInt(monthString);
-  if(month >= 1 && month <= 12) {
-    return month;
-  }
-  return 0;
-}
-
-const getValidDay = (dayString, month, year) => {
-  const day = parseInt(dayString);
-  const daysInMonth = getDaysInMonth(month, isLeapYear(year));
-
-  if(day >= 1 && day <= daysInMonth) {
-    return day;
-  }
-  return 0;
-}
-
-const isDate = (str) => {
-  const parts = str.split("/");
-
-  if(parts.length !== 3) {
-    return false;
-  }
-
-  let year = getValidYear(parts[2]);
-  let month = getValidMonth(parts[1])
-  let day = getValidDay(parts[0], month, year);
-  return { day, month, year };
-};
-
-const dateToDays = (date) => {
-  const { day, month, year } = date;
-  const leapYear = isLeapYear(year);
-  let days = 0;
-
-  for(let i = MIN_YEAR; i < year; i++) {
-    days += isLeapYear(i) ? 366 : 365;
-  }
-  for(let i = 1; i < month; i++) {
-    days += getDaysInMonth(i, leapYear);
-  }
-
-  return days + day;
-};
-
+/**
+ * Instantiates the UserInterface & DateCalculator classes, then runs in a loop to take user input & respond accordingly
+ * @param  {string} str       The string to parse
+ * @param  {Number} min       The minimum number to accept
+ * @param  {Number} max       The maximum number to accept
+ * @return {Number | NaN}     The valid number or NaN
+ */
 const run = async () => {
+  const userInterface = new UserInterface();
+  const calculator = new DateCalculator();
+  console.log("\nWelcome to the date distance app...");
+  console.log(helpText);
 
   while(true) {
-    const [fromString, toString] = (await askUser("Please enter two dates...")).split(" ");
-    const from = isDate(fromString);
-    const to = isDate(toString);
-    console.log({from, to});
-
-    if(from.year === to.year) {
-      if(from.month === to.month) {
-        if(from.day >= to.day) {
-          console.log("First date must be earlier than second date"); 
+    const input = await userInterface.promptUser();
+    
+    switch (input) {
+      case "exit":
+        process.exit();
+      case "help":
+        console.log(helpText);
+        break;
+      default:
+        try {
+          const dates = input.split(" ");
+          const days = calculator.getDaysBetween(dates);
+          console.log(`There are ${days} day(s) between ${dates[0]} and ${dates[1]}`);
+        } catch(e) {
+          console.log("Error calculating distance:", e.message || e);
         }
-      } else if (from.month > to.month) {
-        console.log("First date must be earlier than second date"); 
-      }
+        break;
     }
-
-    const fromDays = dateToDays(from);
-    const toDays = dateToDays(to);
-    console.log({fromDays, toDays});
-
-    console.log("result", toDays - fromDays);
   }
-
 };
 
-rl.on("close", function() {
-    console.log("\nBYE BYE !!!");
-    process.exit(0);
-});
-
 run();
-
-// dd/mm/yyyy
-
-// 01/01/1900 - 31/12/2999
